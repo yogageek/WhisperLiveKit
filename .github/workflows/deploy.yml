@@ -28,7 +28,7 @@ jobs:
           api = HfApi()
 
           SKIP_DIRS = {'.git', '.github', 'benchmarks', 'chrome-extension', 'scripts', 'tests'}
-          SKIP_EXT = {'.png', '.jpg', '.jpeg', '.gif', '.svg'}
+          SKIP_EXT = {'.png', '.jpg', '.jpeg', '.gif'}
 
           for root, dirs, files in os.walk('.'):
               dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
