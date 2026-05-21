@@ -1,30 +1,34 @@
 - name: Upload to HF Space (exclude binaries)
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          python - <<'EOF'
-          from huggingface_hub import HfApi
-          import os
+  env:
+    HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  run: |
+    python - <<'EOF'
+    from huggingface_hub import HfApi
+    from pathlib import Path
+    import os
 
-          api = HfApi()
+    api = HfApi()
 
-          ALLOWED_EXT = {'.py', '.txt', '.md', '.yaml', '.yml', '.json', '.sh', '.html', '.css', '.js', '.ts', '.toml', '.cfg', '.ini', '.onnx', '.jit'}
-          SKIP_DIRS = {'.git', '.github', 'benchmarks', 'chrome-extension', 'scripts'}
+    ALLOWED_EXT = {'.py', '.txt', '.md', '.yaml', '.yml', '.json', '.sh', '.html', '.css', '.js', '.ts', '.toml', '.cfg', '.ini', '.onnx', '.jit'}
+    SKIP_DIRS = {'.git', '.github', 'benchmarks', 'chrome-extension', 'scripts'}
 
-          for root, dirs, files in os.walk('.'):
-              dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
-              for file in files:
-                  local_path = os.path.join(root, file)          # ./whisperlivekit/xxx.py
-                  repo_path = local_path.lstrip('.').lstrip('/')  # whisperlivekit/xxx.py
-                  ext = os.path.splitext(file)[1].lower()
+    for root, dirs, files in os.walk('.'):
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        for file in files:
+            local_path = os.path.join(root, file)
+            repo_path = str(Path(local_path).relative_to('.'))
+            ext = os.path.splitext(file)[1].lower()
 
-                  if ext in ALLOWED_EXT:
-                      print(f"Uploading: {local_path} -> {repo_path}")
-                      api.upload_file(
-                          path_or_fileobj=local_path,   # 用原始路徑讀檔
-                          path_in_repo=repo_path,        # 用乾淨路徑寫入 HF
-                          repo_id="xxxyo/mywhisper",
-                          repo_type="space",
-                          token=os.environ["HF_TOKEN"],
-                      )
-          EOF
+            if ext in ALLOWED_EXT:
+                try:
+                    print(f"Uploading: {local_path} -> {repo_path}")
+                    api.upload_file(
+                        path_or_fileobj=local_path,
+                        path_in_repo=repo_path,
+                        repo_id="xxxyo/mywhisper",
+                        repo_type="space",
+                        token=os.environ["HF_TOKEN"],
+                    )
+                except Exception as e:
+                    print(f"Error uploading {local_path}: {e}")
+    EOF
