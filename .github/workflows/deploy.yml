@@ -1,22 +1,4 @@
-name: Sync to Hugging Face Space
-
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-
-jobs:
-  sync-to-hub:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Install huggingface_hub
-        run: pip install huggingface_hub
-
-      - name: Upload to HF Space (exclude binaries)
+- name: Upload to HF Space (exclude binaries)
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
@@ -25,28 +7,24 @@ jobs:
           import os
 
           api = HfApi()
-          
-          # 只上傳這些副檔名（排除 png/jit）
-          ALLOWED_EXT = {'.py', '.txt', '.md', '.yaml', '.yml', '.json', '.sh', '.html', '.css', '.js', '.ts', '.toml', '.cfg', '.ini'}
-          # 但 .onnx model 檔要保留
-          ALLOWED_FILES = {'whisperlivekit/silero_vad_models/silero_vad.onnx',
-                           'whisperlivekit/silero_vad_models/silero_vad_16k_op15.onnx',
-                           'whisperlivekit/silero_vad_models/silero_vad_half.onnx',
-                           'whisperlivekit/silero_vad_models/silero_vad.jit'}
+
+          ALLOWED_EXT = {'.py', '.txt', '.md', '.yaml', '.yml', '.json', '.sh', '.html', '.css', '.js', '.ts', '.toml', '.cfg', '.ini', '.onnx', '.jit'}
+          SKIP_DIRS = {'.git', '.github', 'benchmarks', 'chrome-extension', 'scripts'}
 
           for root, dirs, files in os.walk('.'):
-              # 跳過 .git
-              dirs[:] = [d for d in dirs if d != '.git']
+              dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
               for file in files:
-                  filepath = os.path.join(root, file).lstrip('./')
+                  local_path = os.path.join(root, file)          # ./whisperlivekit/xxx.py
+                  repo_path = local_path.lstrip('.').lstrip('/')  # whisperlivekit/xxx.py
                   ext = os.path.splitext(file)[1].lower()
-                  if ext in ALLOWED_EXT or filepath in ALLOWED_FILES:
+
+                  if ext in ALLOWED_EXT:
+                      print(f"Uploading: {local_path} -> {repo_path}")
                       api.upload_file(
-                          path_or_fileobj=filepath,
-                          path_in_repo=filepath,
+                          path_or_fileobj=local_path,   # 用原始路徑讀檔
+                          path_in_repo=repo_path,        # 用乾淨路徑寫入 HF
                           repo_id="xxxyo/mywhisper",
                           repo_type="space",
                           token=os.environ["HF_TOKEN"],
                       )
-                      print(f"Uploaded: {filepath}")
           EOF
