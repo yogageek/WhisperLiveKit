@@ -68,14 +68,12 @@ COPY --from=builder-gpu /app/.venv /app/.venv
 
 EXPOSE 7860
 
-CMD ["--model", "medium"]
-
 ENV PATH="/app/.venv/bin:$PATH"
 ENV UV_PYTHON_DOWNLOADS=0
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/')" || exit 1
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:7860/')" || exit 1
 
 ENTRYPOINT ["wlk", "--host", "0.0.0.0", "--port", "7860"]
 
-CMD ["--model", "medium"]
+CMD ["--model", "small", "--language", "zh"]
